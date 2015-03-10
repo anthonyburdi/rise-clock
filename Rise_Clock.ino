@@ -34,48 +34,51 @@ void setup()
 
 void loop() 
 {
-    // read time in element form (tm) and unix time (t)
-    // {tm.Hour, tm.Minute, tm.Second, tm.Day, tm.Month, tm.Year}
+    timePrintToSerial();
+    // read time from Real Time Clock (RTC) in tmElements_t form (tm) and unix time_t (t)
+    // Elements: {tm.Hour, tm.Minute, tm.Second, tm.Day, tm.Month, tm.Year}
     tmElements_t tm;
     time_t t;
     if (RTC.read(tm)) {
-        Serial.println("RTC.read(tm) is true ");
         t = RTC.get();
-
-        mondayTrack(tm, t);
-
-        // if time is after noon on a thurs, used for testing.
-        if (weekday(t) == tue && tm.Hour > 12 && tm.Minute > 16) {
-            fridayCountdown();
-        } else if (weekday(t) == wed && tm.Hour == 6 && tm.Minute > 30) {
-            countdown(10, 10, timeInterval, red); // 10 sec "get ready" startup countdown
-            wednesdayWorkout(30,timeInterval,6,5,5,4,5,5);
-            endWorkout(150); // turn on all nodes red
-        } else if (weekday(t) == fri && tm.Hour == 6 && tm.Minute > 30) {
-            fridayHillSprints();
-        } else {
-            Serial.println("No workouts scheduled for now ");
-            updateDigits(tm.Hour*60 + tm.Minute, green); // display the time in HH:MM
-        }
+        workoutChooser(tm, t); // check time and date, run all workouts
     } else {
-        Serial.println("RTC.read(tm) is false ");
         countup (1,90*60, timeInterval, red); // if RTC is misbehaving just count up from red for 90 min
     }
-
     timePrintToSerial();
-    delay(1000);    
-
+    delay(500);
 }
 
 // ------------------------------------ WORKOUTS ------------------------------------
 
-void mondayTrack(tmElements_t tm, time_t t) {
+void workoutChooser(tmElements_t tm, time_t t) {
+
+    // ********** TEST if time is after noon on a thurs, used for testing.
     if (weekday(t) == tue && tm.Hour > 12) {
-        // Show the word "GO"
-        dispGo(3);
-        // Mon Night Track CountUp
-        countup(4,30*60, timeInterval, green);
+
+        preWorkoutCountdown( 16, 0, 30, tm);
+        // mondayTrack();
+
+    } else if (weekday(t) == wed && tm.Hour == 6 && tm.Minute > 30) {
+        countdown(10, 10, timeInterval, red); // 10 sec "get ready" startup countdown
+        wednesdayWorkout(30,timeInterval,6,5,5,4,5,5);
+        endWorkout(150); // turn on all nodes red
+
+    } else if (weekday(t) == fri && tm.Hour == 6 && tm.Minute > 30) {
+        fridayHillSprints();
+
+    } else {
+        Serial.println("No workouts scheduled for now ");
+        updateDigits(tm.Hour*60 + tm.Minute, green); // display the time in HH:MM
     }
+}
+
+void mondayTrack() {
+    // Show the word "GO"
+    dispGo(3);
+    // Mon Night Track CountUp
+    countup(4,30*60, timeInterval, green);
+    endWorkout(150); // turn on all nodes red
 }
 
 void mondayHIIT() {
@@ -117,8 +120,25 @@ void fridayCountdown() {
 // ------------------------------------ WORKOUTS ------------------------------------
 
 // ------------------------------------ WORKOUT BUILDING BLOCKS ------------------------------------
-void preWorkoutCountdown(int minutesToStart) {
+void preWorkoutCountdown(int workoutStartHour, int workoutStartMin, int minutesToCountdown, tmElements_t current_tm) {
+    // read time from Real Time Clock (RTC) in tmElements_t form (tm) and unix time_t (t)
+    // Elements: {tm.Hour, tm.Minute, tm.Second, tm.Day, tm.Month, tm.Year}
+    // tmElements_t tm;
+    // time_t t;
 
+    int currSec = convertToSec(current_tm);
+    int workoutStartSec = workoutStartHour * 3600 + workoutStartMin * 60;
+    int countdownStartSec = workoutStartSec - minutesToCountdown * 60;
+
+    // from minutesToStart begin counting down in red until the start time
+    // updateDigits(int secsToDisplay, unsigned long color)
+    if ( currSec < workoutStartSec && currSec > countdownStartSec ) {
+        updateDigits( workoutStartSec - currSec , red );
+    }
+}
+
+int convertToSec(tmElements_t tm) {
+    return tm.Hour*3600 + tm.Minute*60 + tm.Second;
 }
 
 void endWorkout(int endTime) {
