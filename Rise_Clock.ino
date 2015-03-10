@@ -55,13 +55,15 @@ void workoutChooser(tmElements_t tm, time_t t) {
 
     // ********** TESTING
     if (weekday(t) == tue && tm.Hour == 16 && tm.Minute < 25) {
-
         preWorkoutCountdown( 16, 25, 30, tm);
 //        mondayTrack();
-
     } else if (weekday(t) == tue && tm.Hour == 16 && tm.Minute >= 25) {
         mondayTrack();
-        
+    } else if (weekday(t) == wed && tm.Hour == 10 && tm.Minute < 30) {
+        preWorkoutCountdown(10, 30, 30, tm);
+    } else if (weekday(t) == wed && tm.Hour == 10 && tm.Minute >= 30) {
+        mondayTrack();
+
     // ********** TESTING
     
     } else if (weekday(t) == wed && tm.Hour == 6 && tm.Minute < 30) {
