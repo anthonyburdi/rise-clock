@@ -13,72 +13,83 @@
 #define PIXEL_TYPE NEO_GRB + NEO_KHZ800
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
 
-// milliseconds, 1000 = one second. Reduce to speed up long sequence testing.
+// milliseconds, 1000 = one second (realtime). Reduce from 1000 to speed up testing.
 const unsigned long timeInterval = 1000;
 
-// TODO ***** Not yet implemented *****
-const int pixelsPerSegment = 2;
+// Easy access colors & days of the week:
+const unsigned long red = strip.Color(255,0,0), green = strip.Color(0,255,0), blue = strip.Color(0,0,255);
+const unsigned long yellow = strip.Color(255,255,0), magenta = strip.Color(255,0,255), cyan = strip.Color(0,255,255);
+const unsigned long white = strip.Color(255,255,255);
+const int sun = 1, mon = 2, tue = 3, wed = 4, thu = 5, fri = 6, sat = 7;
 
-// Easy access colors:
-unsigned long red = strip.Color(255,0,0);
-unsigned long green = strip.Color(0,255,0);
-unsigned long blue = strip.Color(0,0,255);
-unsigned long yellow = strip.Color(255,255,0);
-unsigned long magenta = strip.Color(255,0,255);
-unsigned long cyan = strip.Color(0,255,255);
-unsigned long white = strip.Color(255,255,255);
-
-void setupPixels() {
-    strip.begin(); // Intialize pixels
-    strip.show(); // Initialize all pixels to 'off'
-}
+// Function declarations
+void setupPixels();
 
 void setup() 
 {  
   // timeWriteSetup(); // Set realtime clock from computer clock
-  timeReadSetup();
-  timePrintToSerial();  // Read realtime clock, send to serial
+  // serialSetup();
   setupPixels();
 }
 
 void loop() 
 {
-    // TODO ***** http://playground.arduino.cc/Code/Scheduler
-    timePrintToSerial();
+    // read time in element form (tm) and unix time (t)
+    // {tm.Hour, tm.Minute, tm.Second, tm.Day, tm.Month, tm.Year}
+    tmElements_t tm;
+    time_t t;
+    if (RTC.read(tm)) {
+        Serial.println("RTC.read(tm) is true ");
+        t = RTC.get();
 
-    // TODO ****** Test - get time from RTC, put into array
-    int *t;
-    t = getTime();
-    Serial.println("Day of Week!! = \n");
-    Serial.println(t[6]);
-    Serial.println("Day of Week = \n");
-    // {tm.Hour, tm.Minute, tm.Second, tm.Day, tm.Month, tm.Year, tm.Wday}
-    // for (int i = 0; i<5; i++) {
-    //     // Serial.println("Time fields: %d\n", *(t+i));
-    //     Serial.println("Time fields: %d\n", t[i]);
-    // }
-    timePrintToSerial();
+        mondayTrack(tm, t);
 
-    // timeRead();
-    // 10 sec "get ready" startup countdown
-    countdown(10, 10, timeInterval, red);
-   
-    wednesdayWorkout(30,timeInterval,6,5,5,4,5,5);
-    endWorkout();
+        // if time is after noon on a thurs, used for testing.
+        if (weekday(t) == tue && tm.Hour > 12 && tm.Minute > 16) {
+            fridayCountdown();
+        } else if (weekday(t) == wed && tm.Hour == 6 && tm.Minute > 30) {
+            countdown(10, 10, timeInterval, red); // 10 sec "get ready" startup countdown
+            wednesdayWorkout(30,timeInterval,6,5,5,4,5,5);
+            endWorkout(150); // turn on all nodes red
+        } else if (weekday(t) == fri && tm.Hour == 6 && tm.Minute > 30) {
+            fridayHillSprints();
+        } else {
+            Serial.println("No workouts scheduled for now ");
+            updateDigits(tm.Hour*60 + tm.Minute, green); // display the time in HH:MM
+        }
+    } else {
+        Serial.println("RTC.read(tm) is false ");
+        countup (1,90*60, timeInterval, red); // if RTC is misbehaving just count up from red for 90 min
+    }
+
+    timePrintToSerial();
+    delay(1000);    
+
 }
 
+// ------------------------------------ WORKOUTS ------------------------------------
 
-void mondayTrack() {
-    // Show the word "GO"    
-   blankAll();
-//    displayDigit(0, 10, green); // change string values to int
-   displayDigit(14, 10, green);
-   displayDigit(30, 0, green);
-//    displayDigit(44, 0, green);
-   strip.show();
-   delay(3000);
-       // Mon Night Track CountUp
-   countup(4,30*60, timeInterval, green);
+void mondayTrack(tmElements_t tm, time_t t) {
+    if (weekday(t) == tue && tm.Hour > 12) {
+        // Show the word "GO"
+        dispGo(3);
+        // Mon Night Track CountUp
+        countup(4,30*60, timeInterval, green);
+    }
+}
+
+void mondayHIIT() {
+    // Show the word "GO"
+    for (int j = 0; j < 7; j++) {
+        for (int i = 0; i < 8; i++) {
+        dispGo(3);
+        countdown(16,0,timeInterval, green);
+        dispStop(3);
+        countdown(6,0, timeInterval, red);        
+        }
+        dispStop(10);
+        countdown(35,35, timeInterval, red);
+    }
 }
 
 void wednesdayWorkout(int startMin, int timeInterval, int a, int b, int c, int d, int e, int f) {
@@ -91,22 +102,54 @@ void wednesdayWorkout(int startMin, int timeInterval, int a, int b, int c, int d
     countdown((startMin-a-b-c-d-e)*60, f*60, timeInterval, magenta);
 }
 
-void endWorkout() {
+void fridayHillSprints() {
+    for (int i = 0; i<10; i++) {
+        countdown(45, 45, timeInterval, green);
+        countdown(60+45, 60+45, timeInterval, red);
+    }
+    endWorkout(30);
+}
+
+void fridayCountdown() {
+    countdown(30*60, 30*60, timeInterval, green);
+    endWorkout(30);
+}
+// ------------------------------------ WORKOUTS ------------------------------------
+
+// ------------------------------------ WORKOUT BUILDING BLOCKS ------------------------------------
+void preWorkoutCountdown(int minutesToStart) {
+
+}
+
+void endWorkout(int endTime) {
     blankAll();
     displayDigit(0,8,red);
     displayDigit(14,8,red);
     displayDigit(30,8,red);
     displayDigit(44,8,red);
     strip.show();
-    delay(100*1000);
+    delay(endTime*1000);
 }
 
 void blinkTime(int secsToDisplay, unsigned long color) {
     // captured in countdown(), may not need separate function
 }
 
-void countdownFromTo(int fromSecs, int toSecs, long timeInterval, unsigned long color) {
-    // code goes here
+int countUpFromTo(int fromSecs, int duration, unsigned long color) {
+    // Calculate the remaining time using timeElapsed() and duration. fromSecs is measured from startSecs.
+    // Return the time in seconds that should be displayed
+    return 0;
+}
+
+int countdownFromTo(int fromSecs, int duration, unsigned long color) {
+    // Calculate the remaining time using timeElapsed() and duration. fromSecs is measured from startSecs.
+    // Return the time in seconds that should be displayed
+    return 0;
+}
+
+int timeElapsed(int startSecs) {
+    // take the time measured from midnight in seconds and return the time elapsed in seconds from startSecs
+    return 0;
 }
 
 // Countdown function
@@ -172,12 +215,55 @@ void countup(int fromSecs, int duration, long timeInterval, unsigned long color)
         }
     }
 }
+// ------------------------------------ WORKOUT BUILDING BLOCKS ------------------------------------
+
+// ------------------------------------ DISPLAY FUNCTIONS ------------------------------------
+// Function to blank all pixels, but does not show
+void blankAll() {
+    for(int pixel=0; pixel<strip.numPixels(); pixel++) {
+        strip.setPixelColor(pixel, strip.Color(0,0,0));
+    }
+}
+
+void blankAllShow() {
+    blankAll();
+    strip.show();
+}
+
+void setupPixels() {
+    strip.begin(); // Intialize pixels
+    strip.show(); // Initialize all pixels to 'off'
+}
+
+void blinkColon() {
+
+}
+
+void dispGo(int secs) {
+    // Show the word "GO" for int seconds preceded by blanking, center two digits, no colon
+   blankAll();
+   displayDigit(14, 10, green); // "G"
+   displayDigit(30, 0, green); // "O"
+   strip.show();
+   delay(secs * 1000);
+}
+
+void dispStop(int secs) {
+    // Show the word "STOP" for int seconds preceded by blanking. No colon. Rendered with best available
+    blankAll();
+    displayDigit(0, 5, red); // "S"
+    displayDigit(14, 7, red); // "T"
+    displayDigit(30, 0, red); // "O"
+    displayDigit(44, 11, red); // "P"
+    strip.show();
+    delay(secs * 1000);
+}
 
 // Function to update digits
 void updateDigits(int secsToDisplay, unsigned long color) {
     // Generate string from time
     char display[] = "0000"; // holds the current display
-    sprintf (display, "%02d%02d", secsToDisplay / 60, secsToDisplay % 60);
+    sprintf (display, "%02d%02d", secsToDisplay / 60, secsToDisplay % 60); // make each two-digits
         
     // Change display to new time
     blankAll();
@@ -188,25 +274,9 @@ void updateDigits(int secsToDisplay, unsigned long color) {
     strip.setPixelColor(28, color); // turn on colon
     strip.setPixelColor(29, color); // turn on colon
     strip.show();
-    
 }
 
-// Function to blank all pixels except colon, but does not show
-void blankAll() {
-    for(int pixel=0; pixel<strip.numPixels(); pixel++) {
-        strip.setPixelColor(pixel, strip.Color(0,0,0));
-    }
-    //strip.setPixelColor(28, strip.Color(255,255,255));
-    //strip.setPixelColor(29, strip.Color(255,255,255));
-    //strip.show();
-}
-
-void blankAllShow() {
-    blankAll();
-    strip.show();
-}
-
-// ***** Add generalization including different pixels per segment
+// TODO ***** Add generalization including different pixels per segment
 void displayDigit(int start_pixel, int digit, unsigned long color) {
     
     int zero[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
@@ -221,6 +291,7 @@ void displayDigit(int start_pixel, int digit, unsigned long color) {
     int nine[] = {0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13};
     
     int g[] = {0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 13};
+    int p[] = {0, 1, 2, 3, 8, 9, 10, 11, 12, 13};
     // ****** and so on
     
     int *digitArray; // Digit Array Pointer
@@ -237,21 +308,21 @@ void displayDigit(int start_pixel, int digit, unsigned long color) {
     if(digit == 8) {digitArray = eight; size = sizeof(eight)/sizeof(eight[0]);}
     if(digit == 9) {digitArray = nine; size = sizeof(nine)/sizeof(nine[0]);}
     if(digit == 10) {digitArray = g; size = sizeof(g)/sizeof(g[0]);}
+    if(digit == 11) {digitArray = p; size = sizeof(p)/sizeof(p[0]);}
     
     // for(int pixel=0; pixel < sizeof(digitArray)/sizeof(digitArray[0]); pixel++) {
     for(int pixel=0; pixel < size; pixel++) {
         strip.setPixelColor(digitArray[pixel] + start_pixel, color);
     }
 }
+// ------------------------------------ DISPLAY FUNCTIONS ------------------------------------
 
 // ------------------------------------ TIME READ ------------------------------------
-void timeReadSetup() {
+void serialSetup() {
   Serial.begin(9600);
   while (!Serial) ; // wait for serial
   delay(200);
   Serial.println("Serial output initialized");
-  // Serial.println("DS1307RTC Read Test");
-  // Serial.println("-------------------");
 }
 
 void timePrintToSerial() {
@@ -292,31 +363,60 @@ void print2digits(int number) {
   Serial.print(number);
 }
 
-int * getTime() {
-    tmElements_t tm;
-    time_t t;
-    if (RTC.read(tm)) {
+  
+//struct * getTime() {
+//    tmElements_t tm;
+//    time_t t;
+//    if (RTC.read(tm)) {
+//        // Sunday is day 1 in weekday()
+//        t = RTC.get();
+//        // Serial.print("Test print day of week:");
+//        // Serial.println(weekday(t));
+//        int a = weekday(RTC.get());
+//        Serial.print("Test print day of week:");
+//        Serial.println(a);
+//
+//        return tm;
+//
+//        // static int t[] = {tm.Hour, tm.Minute, tm.Second, tm.Day, tm.Month, tm.Year, weekday(RTC.get())};
+//        // return t;
+//    } else {
+//    if (RTC.chipPresent()) {
+//      Serial.println("The DS1307 is stopped.  Please run the SetTime");
+//      Serial.println("example to initialize the time and begin running.");
+//      Serial.println();
+//    } else {
+//      Serial.println("DS1307 read error!  Please check the circuitry.");
+//      Serial.println();
+//    }
+//  }
+//}
 
-        // Sunday is day 1 in weekday()
-        t = RTC.get();
-        Serial.print("Test:");
-        Serial.println(weekday(t));
-        int a = weekday(t);
+// int * getTime() {
+//     tmElements_t tm;
+//     time_t t;
+//     if (RTC.read(tm)) {
+//         // Sunday is day 1 in weekday()
+//         t = RTC.get();
+//         // Serial.print("Test print day of week:");
+//         // Serial.println(weekday(t));
+//         int a = weekday(RTC.get());
+//         Serial.print("Test print day of week:");
+//         Serial.println(a);
 
-        static int t[] = {tm.Hour, tm.Minute, tm.Second, tm.Day, tm.Month, tm.Year, a};
-        return t;
-    } else {
-    if (RTC.chipPresent()) {
-      Serial.println("The DS1307 is stopped.  Please run the SetTime");
-      Serial.println("example to initialize the time and begin running.");
-      Serial.println();
-    } else {
-      Serial.println("DS1307 read error!  Please check the circuitry.");
-      Serial.println();
-    }
-    delay(9000);
-  }
-}
+//         static int t[] = {tm.Hour, tm.Minute, tm.Second, tm.Day, tm.Month, tm.Year, weekday(RTC.get())};
+//         return t;
+//     } else {
+//     if (RTC.chipPresent()) {
+//       Serial.println("The DS1307 is stopped.  Please run the SetTime");
+//       Serial.println("example to initialize the time and begin running.");
+//       Serial.println();
+//     } else {
+//       Serial.println("DS1307 read error!  Please check the circuitry.");
+//       Serial.println();
+//     }
+//   }
+// }
 // ------------------------------------ TIME READ ------------------------------------
 
 // ------------------------------------ TIME SET ------------------------------------
