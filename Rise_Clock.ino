@@ -53,14 +53,20 @@ void loop()
 
 void workoutChooser(tmElements_t tm, time_t t) {
 
-    // ********** TEST if time is after noon on a thurs, used for testing.
-    if (weekday(t) == tue && tm.Hour > 12) {
+    // ********** TESTING
+    if (weekday(t) == tue && tm.Hour == 16 && tm.Minute < 25) {
 
-        preWorkoutCountdown( 16, 0, 30, tm);
-        // mondayTrack();
+        preWorkoutCountdown( 16, 25, 30, tm);
+//        mondayTrack();
 
-    } else if (weekday(t) == wed && tm.Hour == 6 && tm.Minute > 30) {
-        countdown(10, 10, timeInterval, red); // 10 sec "get ready" startup countdown
+    } else if (weekday(t) == tue && tm.Hour == 16 && tm.Minute >= 25) {
+        mondayTrack();
+        
+    // ********** TESTING
+    
+    } else if (weekday(t) == wed && tm.Hour == 6 && tm.Minute < 30) {
+        preWorkoutCountdown(6, 30 , 30, tm);
+    } else if (weekday(t) == wed && tm.Hour == 6 && tm.Minute >= 30) {
         wednesdayWorkout(30,timeInterval,6,5,5,4,5,5);
         endWorkout(150); // turn on all nodes red
 
@@ -121,17 +127,11 @@ void fridayCountdown() {
 
 // ------------------------------------ WORKOUT BUILDING BLOCKS ------------------------------------
 void preWorkoutCountdown(int workoutStartHour, int workoutStartMin, int minutesToCountdown, tmElements_t current_tm) {
-    // read time from Real Time Clock (RTC) in tmElements_t form (tm) and unix time_t (t)
-    // Elements: {tm.Hour, tm.Minute, tm.Second, tm.Day, tm.Month, tm.Year}
-    // tmElements_t tm;
-    // time_t t;
-
+    // from minutesToStart before workoutStartHour:workoutStartMin begin counting down in red until the start time
     int currSec = convertToSec(current_tm);
     int workoutStartSec = workoutStartHour * 3600 + workoutStartMin * 60;
     int countdownStartSec = workoutStartSec - minutesToCountdown * 60;
 
-    // from minutesToStart begin counting down in red until the start time
-    // updateDigits(int secsToDisplay, unsigned long color)
     if ( currSec < workoutStartSec && currSec > countdownStartSec ) {
         updateDigits( workoutStartSec - currSec , red );
     }
