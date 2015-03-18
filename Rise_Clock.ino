@@ -57,7 +57,8 @@ void workoutChooser(tmElements_t tm, time_t t) {
     if (weekday(t) == tue && tm.Hour == 16 && tm.Minute < 25) {
         preWorkoutCountdown( 16, 25, 30, tm);
 //        mondayTrack();
-    } else if (weekday(t) == tue && tm.Hour == 16 && tm.Minute >= 25) {
+    } else if (weekday(t) == mon && tm.Hour >= 17) {
+        countdown(5,5, timeInterval, red);
         mondayTrack();
     } else if (weekday(t) == wed && tm.Hour == 10 && tm.Minute < 30) {
         preWorkoutCountdown(10, 30, 30, tm);
@@ -69,7 +70,7 @@ void workoutChooser(tmElements_t tm, time_t t) {
     } else if (weekday(t) == wed && tm.Hour == 6 && tm.Minute < 30) {
         preWorkoutCountdown(6, 30 , 30, tm);
     } else if (weekday(t) == wed && tm.Hour == 6 && tm.Minute >= 30) {
-        wednesdayWorkout(30,timeInterval,6,5,5,4,5,5);
+        wednesdayWorkout(30,timeInterval,6,8,4,6,5,1);
         endWorkout(150); // turn on all nodes red
 
     } else if (weekday(t) == fri && tm.Hour == 6 && tm.Minute > 30) {
@@ -94,9 +95,9 @@ void mondayHIIT() {
     for (int j = 0; j < 7; j++) {
         for (int i = 0; i < 8; i++) {
         dispGo(3);
-        countdown(16,0,timeInterval, green);
+        countdown(16,16,timeInterval, green);
         dispStop(3);
-        countdown(6,0, timeInterval, red);        
+        countdown(6,6, timeInterval, red);        
         }
         dispStop(10);
         countdown(35,35, timeInterval, red);
