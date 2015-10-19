@@ -58,7 +58,7 @@ void workoutChooser(tmElements_t tm, time_t t) {
         preWorkoutCountdown( 16, 25, 30, tm);
 //        mondayTrack();
     } else if (weekday(t) == mon && tm.Hour >= 17) {
-        countdown(5,5, timeInterval, red);
+        countdown(10,10, timeInterval, red);
         mondayTrack();
     } else if (weekday(t) == wed && tm.Hour == 10 && tm.Minute < 30) {
         preWorkoutCountdown(10, 30, 30, tm);
@@ -70,7 +70,7 @@ void workoutChooser(tmElements_t tm, time_t t) {
     } else if (weekday(t) == wed && tm.Hour == 6 && tm.Minute < 30) {
         preWorkoutCountdown(6, 30 , 30, tm);
     } else if (weekday(t) == wed && tm.Hour == 6 && tm.Minute >= 30) {
-        wednesdayWorkout(30,timeInterval,6,8,4,6,5,1);
+        wednesdayWorkout(30,timeInterval,5,10,5,10,0,0);
         endWorkout(150); // turn on all nodes red
 
     } else if (weekday(t) == fri && tm.Hour == 6 && tm.Minute > 30) {
@@ -78,7 +78,9 @@ void workoutChooser(tmElements_t tm, time_t t) {
 
     } else {
         Serial.println("No workouts scheduled for now ");
-        updateDigits(tm.Hour*60 + tm.Minute, green); // display the time in HH:MM
+        //updateDigits(tm.Hour*60 + tm.Minute, green); // display the time in HH:MM
+        countdown(10,10, timeInterval, red);
+        mondayTrack();
     }
 }
 
@@ -86,7 +88,7 @@ void mondayTrack() {
     // Show the word "GO"
     dispGo(3);
     // Mon Night Track CountUp
-    countup(4,30*60, timeInterval, green);
+    countup(4,120*60, timeInterval, green);
     endWorkout(150); // turn on all nodes red
 }
 
